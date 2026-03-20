@@ -8,18 +8,16 @@ sidebar:
 
 Production-grade Event Sourcing library for Go, ported from [Eventuous](https://github.com/Eventuous/eventuous) (.NET).
 
-## Installation
+**New to Eventuous Go?** Start here:
 
-```bash
-go get github.com/eventuous/eventuous-go/core
-go get github.com/eventuous/eventuous-go/kurrentdb
-```
+- [Introduction to concepts](/go/concepts/introduction/) -- what Event Sourcing is, why Eventuous Go exists, and its design philosophy
+- [Quick Start](/go/concepts/quick-start/) -- build a complete booking system step by step
 
 ## Design principles
 
-- **Functional-first** — pure functions over OOP, type switch fold over handler registration
-- **Idiomatic Go** — composition over inheritance, middleware chains, `context.Context` + errors
-- **Multi-module** — import only what you need, no transitive dependency bloat
+- **Functional-first** -- pure functions over OOP, type switch fold over handler registration
+- **Idiomatic Go** -- composition over inheritance, middleware chains, `context.Context` + errors
+- **Multi-module** -- import only what you need, no transitive dependency bloat
 
 ## Modules
 
@@ -28,6 +26,13 @@ go get github.com/eventuous/eventuous-go/kurrentdb
 | **core** | `github.com/eventuous/eventuous-go/core` | Domain, persistence, command services, subscriptions |
 | **kurrentdb** | `github.com/eventuous/eventuous-go/kurrentdb` | KurrentDB/EventStoreDB store and subscriptions |
 | **otel** | `github.com/eventuous/eventuous-go/otel` | OpenTelemetry tracing and metrics |
+
+## Installation
+
+```bash
+go get github.com/eventuous/eventuous-go/core
+go get github.com/eventuous/eventuous-go/kurrentdb
+```
 
 ## Source code
 
