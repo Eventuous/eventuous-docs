@@ -32,35 +32,17 @@ export default defineConfig({
           items: [
             { label: 'Introduction', slug: 'dotnet/intro' },
             { label: "What's New", slug: 'dotnet/whats-new' },
-            {
-              label: 'Concepts',
-              collapsed: true,
-              items: [
-                { label: 'Prologue', autogenerate: { directory: 'dotnet/prologue' } },
-                { label: 'Domain', autogenerate: { directory: 'dotnet/domain' } },
-                { label: 'Persistence', autogenerate: { directory: 'dotnet/persistence' } },
-              ],
-            },
-            {
-              label: 'Building Apps',
-              collapsed: true,
-              items: [
-                { label: 'Application', autogenerate: { directory: 'dotnet/application' } },
-                { label: 'Subscriptions', autogenerate: { directory: 'dotnet/subscriptions' } },
-                { label: 'Read Models', autogenerate: { directory: 'dotnet/read-models' } },
-                { label: 'Producers', autogenerate: { directory: 'dotnet/producers' } },
-                { label: 'Gateway', autogenerate: { directory: 'dotnet/gateway' } },
-              ],
-            },
-            {
-              label: 'Operations',
-              collapsed: true,
-              items: [
-                { label: 'Diagnostics', autogenerate: { directory: 'dotnet/diagnostics' } },
-                { label: 'Infrastructure', autogenerate: { directory: 'dotnet/infra' } },
-                { label: 'FAQ', autogenerate: { directory: 'dotnet/faq' } },
-              ],
-            },
+            { label: 'Prologue', autogenerate: { directory: 'dotnet/prologue' } },
+            { label: 'Domain', autogenerate: { directory: 'dotnet/domain' } },
+            { label: 'Persistence', autogenerate: { directory: 'dotnet/persistence' } },
+            { label: 'Application', autogenerate: { directory: 'dotnet/application' } },
+            { label: 'Subscriptions', autogenerate: { directory: 'dotnet/subscriptions' } },
+            { label: 'Read Models', autogenerate: { directory: 'dotnet/read-models' } },
+            { label: 'Producers', autogenerate: { directory: 'dotnet/producers' } },
+            { label: 'Gateway', autogenerate: { directory: 'dotnet/gateway' } },
+            { label: 'Diagnostics', autogenerate: { directory: 'dotnet/diagnostics' } },
+            { label: 'Infrastructure', autogenerate: { directory: 'dotnet/infra' } },
+            { label: 'FAQ', autogenerate: { directory: 'dotnet/faq' } },
           ],
         },
         {
