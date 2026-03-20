@@ -1,3 +1,4 @@
+# Redirects from old Connector docs
 /docs/sinks/elasticsearch/ https://connect.eventuous.dev/docs/sinks/elasticsearch/ 301
 /docs/deployment/ https://connect.eventuous.dev/docs/deployment/ 301
 /docs/custom-connector/ https://connect.eventuous.dev/docs/custom-connector/ 301
@@ -7,3 +8,18 @@
 /docs/projectors/grpc/ https://connect.eventuous.dev/docs/projectors/grpc/ 301
 /docs/sinks/sqlserver/ https://connect.eventuous.dev/docs/sinks/sqlserver/ 301
 /docs/sinks/mongodb/ https://connect.eventuous.dev/docs/sinks/mongodb/ 301
+
+# Redirects from old .NET docs paths to new /dotnet/ prefix
+/intro/*          /dotnet/intro/:splat          301
+/whats-new/*      /dotnet/whats-new/:splat      301
+/domain/*         /dotnet/domain/:splat         301
+/persistence/*    /dotnet/persistence/:splat    301
+/application/*    /dotnet/application/:splat    301
+/subscriptions/*  /dotnet/subscriptions/:splat  301
+/read-models/*    /dotnet/read-models/:splat    301
+/producers/*      /dotnet/producers/:splat      301
+/gateway/*        /dotnet/gateway/:splat        301
+/diagnostics/*    /dotnet/diagnostics/:splat    301
+/infra/*          /dotnet/infra/:splat          301
+/faq/*            /dotnet/faq/:splat            301
+/prologue/*       /dotnet/prologue/:splat       301

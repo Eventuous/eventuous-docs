@@ -1,18 +1,22 @@
 ---
-title: Event Sourcing for .NET
-description: Production-grade Event Sourcing library implementing DDD tactical patterns.
+title: Eventuous
+description: Production-grade Event Sourcing libraries for .NET and Go.
 template: splash
 hero:
-  tagline: Production-grade Event Sourcing library for .NET, implementing DDD tactical patterns. Aggregates, command services, event stores, subscriptions, and projections — all out of the box.
+  tagline: Production-grade Event Sourcing libraries implementing DDD tactical patterns. Available for .NET and Go.
   image:
     file: ../../assets/logo.png
   actions:
-    - text: Get started
-      link: /intro/
+    - text: .NET Docs
+      link: /dotnet/intro/
       icon: right-arrow
       variant: primary
-    - text: View on GitHub
-      link: https://github.com/eventuous/eventuous
+    - text: Go Docs
+      link: /go/intro/
+      icon: right-arrow
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/eventuous
       icon: external
       variant: minimal
 ---
@@ -24,10 +28,10 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
     Aggregates with state folding, strongly-typed identities, and optimistic concurrency built in.
   </Card>
   <Card title="Multiple event stores" icon="add-document">
-    First-class support for KurrentDB, PostgreSQL, SQL Server, and SQLite — with a common abstraction layer.
+    First-class support for KurrentDB, PostgreSQL, SQL Server, and more — with a common abstraction layer.
   </Card>
   <Card title="Subscriptions and projections" icon="setting">
-    Real-time event processing with checkpointing, consume pipes, and partitioned subscriptions.
+    Real-time event processing with checkpointing, middleware chains, and partitioned subscriptions.
   </Card>
   <Card title="Built-in diagnostics" icon="open-book">
     OpenTelemetry tracing and metrics out of the box for full observability.

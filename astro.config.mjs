@@ -12,7 +12,7 @@ export default defineConfig({
         src: './src/assets/logo.png',
       },
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/eventuous/eventuous' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/eventuous' },
         { icon: 'discord', label: 'Discord', href: 'https://discord.gg/ZrqM6vnnmf' },
       ],
       customCss: ['./src/styles/custom.css'],
@@ -20,42 +20,59 @@ export default defineConfig({
         starlightVersions({
           current: { label: 'v0.16 (Stable)' },
           versions: [
-            { slug: '0.15', label: 'v0.15' },
-            { slug: 'next', label: 'Preview' },
+            { slug: 'dotnet-0.15', label: 'v0.15' },
+            { slug: 'dotnet-next', label: 'Preview' },
           ],
         }),
         starlightMermaid(),
       ],
       sidebar: [
-        { label: 'Introduction', slug: 'intro' },
-        { label: "What's New", slug: 'whats-new' },
         {
-          label: 'Concepts',
-          collapsed: true,
+          label: '.NET',
           items: [
-            { label: 'Prologue', autogenerate: { directory: 'prologue' } },
-            { label: 'Domain', autogenerate: { directory: 'domain' } },
-            { label: 'Persistence', autogenerate: { directory: 'persistence' } },
+            { label: 'Introduction', slug: 'dotnet/intro' },
+            { label: "What's New", slug: 'dotnet/whats-new' },
+            {
+              label: 'Concepts',
+              collapsed: true,
+              items: [
+                { label: 'Prologue', autogenerate: { directory: 'dotnet/prologue' } },
+                { label: 'Domain', autogenerate: { directory: 'dotnet/domain' } },
+                { label: 'Persistence', autogenerate: { directory: 'dotnet/persistence' } },
+              ],
+            },
+            {
+              label: 'Building Apps',
+              collapsed: true,
+              items: [
+                { label: 'Application', autogenerate: { directory: 'dotnet/application' } },
+                { label: 'Subscriptions', autogenerate: { directory: 'dotnet/subscriptions' } },
+                { label: 'Read Models', autogenerate: { directory: 'dotnet/read-models' } },
+                { label: 'Producers', autogenerate: { directory: 'dotnet/producers' } },
+                { label: 'Gateway', autogenerate: { directory: 'dotnet/gateway' } },
+              ],
+            },
+            {
+              label: 'Operations',
+              collapsed: true,
+              items: [
+                { label: 'Diagnostics', autogenerate: { directory: 'dotnet/diagnostics' } },
+                { label: 'Infrastructure', autogenerate: { directory: 'dotnet/infra' } },
+                { label: 'FAQ', autogenerate: { directory: 'dotnet/faq' } },
+              ],
+            },
           ],
         },
         {
-          label: 'Building Apps',
-          collapsed: true,
+          label: 'Go',
           items: [
-            { label: 'Application', autogenerate: { directory: 'application' } },
-            { label: 'Subscriptions', autogenerate: { directory: 'subscriptions' } },
-            { label: 'Read Models', autogenerate: { directory: 'read-models' } },
-            { label: 'Producers', autogenerate: { directory: 'producers' } },
-            { label: 'Gateway', autogenerate: { directory: 'gateway' } },
-          ],
-        },
-        {
-          label: 'Operations',
-          collapsed: true,
-          items: [
-            { label: 'Diagnostics', autogenerate: { directory: 'diagnostics' } },
-            { label: 'Infrastructure', autogenerate: { directory: 'infra' } },
-            { label: 'FAQ', autogenerate: { directory: 'faq' } },
+            { label: 'Introduction', slug: 'go/intro' },
+            { label: "What's New", slug: 'go/whats-new' },
+            { label: 'Domain', autogenerate: { directory: 'go/domain' } },
+            { label: 'Application', autogenerate: { directory: 'go/application' } },
+            { label: 'Persistence', autogenerate: { directory: 'go/persistence' } },
+            { label: 'Subscriptions', autogenerate: { directory: 'go/subscriptions' } },
+            { label: 'Infrastructure', autogenerate: { directory: 'go/infra' } },
           ],
         },
       ],
@@ -66,7 +83,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl: 'https://github.com/eventuous/eventuous/edit/dev/docs/',
+        baseUrl: 'https://github.com/eventuous/eventuous-docs/edit/main/',
       },
     }),
   ],
