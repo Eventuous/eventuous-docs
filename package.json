@@ -15,9 +15,8 @@
     ]
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.37.7",
+    "@astrojs/starlight": "^0.38.2",
     "@pasqal-io/starlight-client-mermaid": "^0.1.0",
-    "astro": "^5.18.1",
-    "starlight-versions": "^0.7.1"
+    "astro": "^6.0.8"
   }
 }
