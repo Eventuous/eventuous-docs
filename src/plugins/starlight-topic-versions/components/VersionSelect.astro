@@ -1,0 +1,153 @@
+---
+const routeData = (Astro.locals as any).starlightTopicVersions as {
+  currentTopic: { id: string; label: string; link: string } | null;
+  currentVersion: { slug: string; label: string; isCurrent: boolean } | null;
+  topics: Array<{ id: string; label: string; link: string; icon?: string; isCurrent: boolean }>;
+} | undefined;
+
+const topic = routeData?.currentTopic;
+const version = routeData?.currentVersion;
+
+// Find the full topic config to get version list
+const topicId = topic?.id;
+
+// We need version config from the virtual module, but in .astro components
+// we can't easily import virtual modules. Instead, we'll embed the needed data.
+// The middleware already figured out the current version; we need the full list.
+// We'll import the virtual config here.
+let versions: Array<{ slug: string; label: string; isCurrent: boolean }> = [];
+let showSelect = false;
+
+if (topic && version) {
+  // Import is handled at build time
+  const allConfig = await import('virtual:starlight-topic-versions/config');
+  const topicConfig = (allConfig.default as any[]).find((t: any) => t.id === topicId);
+
+  if (topicConfig?.versions && topicConfig.versions.versions.length > 0) {
+    showSelect = true;
+    // Current version option
+    versions.push({
+      slug: topicConfig.id,
+      label: topicConfig.versions.current.label,
+      isCurrent: version.isCurrent,
+    });
+    // Archived versions
+    for (const v of topicConfig.versions.versions) {
+      versions.push({
+        slug: v.slug,
+        label: v.label ?? v.slug,
+        isCurrent: !version.isCurrent && version.slug === v.slug,
+      });
+    }
+  }
+}
+---
+
+{showSelect && (
+  <starlight-topic-version-select
+    data-current-slug={version?.slug}
+    data-topic-id={topic?.id}
+  >
+    <label>
+      <span class="sr-only">Version</span>
+      <select>
+        {versions.map((v) => (
+          <option value={v.slug} selected={v.isCurrent}>
+            {v.label}
+          </option>
+        ))}
+      </select>
+      <svg
+        aria-hidden="true"
+        class="caret"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z" />
+      </svg>
+    </label>
+  </starlight-topic-version-select>
+)}
+
+<script>
+  class StarlightTopicVersionSelect extends HTMLElement {
+    constructor() {
+      super();
+      const select = this.querySelector('select');
+      if (!select) return;
+
+      select.addEventListener('change', () => {
+        const selectedSlug = select.value;
+        const currentSlug = this.dataset.currentSlug!;
+
+        if (selectedSlug === currentSlug) return;
+
+        const path = window.location.pathname;
+        const segments = path.split('/').filter(Boolean);
+
+        if (segments.length === 0) return;
+
+        // Replace the first segment (version/topic prefix) with the new one
+        segments[0] = selectedSlug;
+        const newPath = '/' + segments.join('/') + '/';
+
+        window.location.href = newPath;
+      });
+    }
+  }
+
+  customElements.define('starlight-topic-version-select', StarlightTopicVersionSelect);
+</script>
+
+<style>
+  starlight-topic-version-select {
+    display: flex;
+    align-items: center;
+  }
+
+  label {
+    --tv-select-border: var(--sl-color-gray-5);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+  }
+
+  select {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--tv-select-border);
+    border-radius: 99rem;
+    color: var(--sl-color-gray-1);
+    cursor: pointer;
+    font-size: var(--sl-text-xs);
+    padding: 0.25rem 1.5rem 0.25rem 0.625rem;
+  }
+
+  select:hover {
+    color: var(--sl-color-white);
+    border-color: var(--sl-color-gray-2);
+  }
+
+  .caret {
+    position: absolute;
+    right: 0.25rem;
+    pointer-events: none;
+    color: var(--sl-color-gray-3);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>

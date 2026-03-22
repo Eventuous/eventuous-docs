@@ -40,4 +40,49 @@ The default implementation fans out to individual `Produce` calls using `Task.Wh
 
 ### StreamEvent Created timestamp
 
-`StreamEvent` now includes a `Created` timestamp (`DateTime`) recording when the event was persisted.
+`StreamEvent` now includes a `Created` timestamp (`DateTime`) recording when the event was persisted. All store implementations (KurrentDB, PostgreSQL, SQL Server, SQLite, Redis, Elasticsearch, InMemory) populate this field from the underlying store's timestamp data. The field defaults to `default` for backward compatibility.
+
+### Streaming event reads with IAsyncEnumerable
+
+`IEventReader.ReadEvents` and `ReadEventsBackwards` now return `IAsyncEnumerable<StreamEvent>` instead of `Task<StreamEvent[]>`, enabling streaming consumption of events without materializing the entire result set in memory:
+
+```csharp
+await foreach (var evt in eventReader.ReadEvents(stream, start, count, ct)) {
+    // Process events as they arrive from the store
+}
+```
+
+The previous signatures (with `failIfNotFound`, returning `Task<StreamEvent[]>`) are preserved as extension methods in `StoreFunctions`, so **all existing callers compile and work unchanged**.
+
+### SignalR subscription gateway
+
+Two new packages enable real-time event streaming to browser UIs, mobile apps, or other remote clients via SignalR:
+
+- **`Eventuous.SignalR.Server`** — server-side gateway that manages per-connection Eventuous subscriptions and forwards events over SignalR
+- **`Eventuous.SignalR.Client`** — client-side subscription API with auto-reconnect, `IAsyncEnumerable` raw streaming, and typed event handling via fluent `On<T>` handlers
+
+The server reuses the existing Gateway pattern (`GatewayHandler` + `BaseProducer`), so event forwarding benefits from the same tracing and metadata pipeline as other Eventuous producers.
+
+```csharp
+// Server registration
+builder.Services.AddSignalRSubscriptionGateway<SignalRSubscriptionHub>((sp, options) => {
+    var client = sp.GetRequiredService<KurrentDBClient>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+
+    options.SubscriptionFactory = (stream, fromPosition, pipe, subscriptionId) =>
+        new StreamSubscription(client, new StreamSubscriptionOptions {
+            StreamName = stream,
+            SubscriptionId = subscriptionId
+        }, new NoOpCheckpointStore(fromPosition), pipe, loggerFactory);
+});
+app.MapHub<SignalRSubscriptionHub>("/subscriptions");
+
+// Client typed consumption
+await client.SubscribeTyped("Order-123", fromPosition: 0)
+    .On<OrderPlaced>((evt, meta) => { /* handle */ return ValueTask.CompletedTask; })
+    .On<OrderShipped>((evt, meta) => { /* handle */ return ValueTask.CompletedTask; })
+    .StartAsync();
+```
+
+See the [SignalR documentation](../infra/signalr) for full details including auto-reconnect behavior and custom hubs.
+

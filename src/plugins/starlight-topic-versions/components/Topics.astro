@@ -1,0 +1,67 @@
+---
+const routeData = (Astro.locals as any).starlightTopicVersions as {
+  topics: Array<{ id: string; label: string; link: string; icon?: string; isCurrent: boolean }>;
+} | undefined;
+
+const topics = routeData?.topics ?? [];
+---
+
+{topics.length > 0 && (
+  <nav class="tv-topics" aria-label="Documentation topics">
+    <ul>
+      {topics.map((topic) => (
+        <li>
+          <a
+            href={topic.link}
+            class:list={[{ 'tv-current': topic.isCurrent }]}
+            aria-current={topic.isCurrent ? 'true' : undefined}
+          >
+            {topic.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
+
+<style>
+  .tv-topics {
+    padding: 0.75rem 1rem 0.5rem;
+    border-bottom: 1px solid var(--sl-color-gray-6);
+  }
+
+  ul {
+    display: flex;
+    gap: 0.25rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  a {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    border-radius: 99rem;
+    text-decoration: none;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background-color 0.15s, color 0.15s;
+  }
+
+  a:hover {
+    color: var(--sl-color-white);
+    background: var(--sl-color-gray-5);
+  }
+
+  a.tv-current {
+    color: var(--sl-color-white);
+    background: var(--sl-color-accent);
+  }
+
+  :global([data-theme='light']) a.tv-current {
+    color: var(--sl-color-black);
+    background: var(--sl-color-accent);
+  }
+</style>
