@@ -86,8 +86,3 @@ await client.SubscribeTyped("Order-123", fromPosition: 0)
 
 See the [SignalR documentation](../infra/signalr) for full details including auto-reconnect behavior and custom hubs.
 
-## Bug fixes
-
-### Source generators missing from NuGet packages
-
-Source generator DLLs were not being included in the `analyzers/dotnet/cs/` folder of published NuGet packages, so consumers had no source generation at compile time. The root cause was that `PackAsAnalyzer="true"` on `ProjectReference` is a convention from `dotnet/runtime`'s private build infrastructure — it is not part of the public .NET SDK and was silently ignored. A new `PackAsAnalyzer.targets` file implements the convention properly for all four generator projects (Shared, Subscriptions, Extensions.AspNetCore, Spyglass).
