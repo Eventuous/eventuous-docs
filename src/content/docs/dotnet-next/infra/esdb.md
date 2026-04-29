@@ -221,6 +221,34 @@ builder.Services.AddSubscription<AllPersistentSubscription, AllPersistentSubscri
 
 There's no need to use a checkpoint store as persistent subscription checkpoint is maintained by the server.
 
+#### Error handling
+
+When an event handler throws, what happens next depends on the `ThrowOnError` option:
+
+- **`ThrowOnError = false`** (default): the failure is logged, the event is acknowledged, and the subscription moves on. The failed event is **not** delivered to the parked stream.
+- **`ThrowOnError = true`**: the failure is passed to the `FailureHandler` configured on the subscription options. The default handler issues a server-side Nack with `Retry`. KurrentDB then retries the event up to `PersistentSubscriptionSettings.MaxRetryCount` times (default `10`) before parking it. The subscription stays connected, so other events keep flowing.
+
+If you want the persistent subscription to leverage the server's retry-and-park machinery, you must set `ThrowOnError = true`.
+
+The parked stream is named `$persistentsubscription-<stream>::<group>-parked` and contains *link* events, so reads must use `resolveLinkTos: true` to retrieve the original payloads:
+
+```csharp
+var parked = client.ReadStreamAsync(
+    Direction.Forwards,
+    $"$persistentsubscription-{streamName}::{subscriptionId}-parked",
+    StreamPosition.Start,
+    resolveLinkTos: true
+);
+```
+
+To override the default behaviour, set `FailureHandler` on the options. For example, to park immediately without retries:
+
+```csharp
+options.ThrowOnError   = true;
+options.FailureHandler = (_, sub, re, ex)
+    => sub.Nack(PersistentSubscriptionNakEventAction.Park, ex.Message, re);
+```
+
 ## Producer
 
 In a prototype or small-scale production application, you can use KurrentDB as a message broker. In that case, you can use the `KurrentDBProducer` to publish events to the database. Unlike the aggregate store, [producers](../../producers) allow publishing events that aren't necessarily domain events.
