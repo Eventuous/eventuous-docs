@@ -26,7 +26,7 @@ public record BookingState : State<BookingState> {
     public override BookingState When(object @event)
         => @event switch {
             RoomBooked booked        => this with { Price = booked.Price },
-            BookingImported imported => this with { Price = booked.Price },
+            BookingImported imported => this with { Price = imported.Price },
             _                        => this
         };
 }
