@@ -45,7 +45,7 @@ The blob name itself is constructed using the projection type name and stream id
 
 ## Projector options
 
-The `BlobStorageProjectorOptions<T>` class provides several configuration options for fine-tuning the projector behavior.
+The `BlobStorageProjectorOptions` class provides several configuration options for fine-tuning the projector behavior.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -57,9 +57,13 @@ The `BlobStorageProjectorOptions<T>` class provides several configuration option
 
 The `IdempotencyMode` enum controls how the projector handles duplicate messages:
 
-- **`None`** - No idempotency checks. Always processes messages and updates blobs.
-- **`ByGlobalPosition`** - Skips processing if existing blob has matching global position metadata.
-- **`ByMessageId`** - Skips processing if existing blob has matching message ID metadata.
+- **`None`** - No idempotency checks. Will process messages and updates blob, without
+checking for duplicates.
+- **`ByGlobalPosition`** - Skips processing if the existing blob has a global position set in
+its metadata that indicates it has already been processed. The event global position must be greater than that stored in the blob.
+- **`ByMessageId`** - Use this when building projections directly from integration events. Skips
+processing if the message ID in the blob metadata matches that in the event.
+Note, this means the idempotency is weaker as only the last message ID is checked. Older messages that are replayed will be processed as normal.
 
 ### Custom blob naming
 
