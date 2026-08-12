@@ -29,14 +29,15 @@ All of those are immutable records.
 
 The event store provides the following operations:
 
-| Function         | What's it for                                                    |
-|------------------|------------------------------------------------------------------|
-| `AppendEvents`   | Append one or more events to a given stream.                     |
-| `AppendEvents`   | Append events to multiple streams in a single operation.         |
-| `ReadEvents`     | Read events from a stream forwards, from a given start position. |
-| `StreamExists`   | Check if a stream exists.                                        |
-| `TruncateStream` | Remove events from a stream up to a given position.              |
-| `DeleteStream`   | Delete a stream entirely.                                        |
+| Function             | What's it for                                                     |
+|----------------------|-------------------------------------------------------------------|
+| `AppendEvents`       | Append one or more events to a given stream.                      |
+| `AppendEvents`       | Append events to multiple streams in a single operation.          |
+| `ReadEvents`         | Read events from a stream forwards, from a given start position.  |
+| `ReadEventsBackwards`| Read events from a stream backwards, from a given start position. |
+| `StreamExists`       | Check if a stream exists.                                         |
+| `TruncateStream`     | Remove events from a stream up to a given position.               |
+| `DeleteStream`       | Delete a stream entirely.                                         |
 
 ## Usage examples
 
@@ -124,7 +125,25 @@ foreach (var evt in events) {
 }
 ```
 
-The `ReadStream` extension method handles pagination automatically and returns all events:
+The `IEventReader.ReadEvents` interface method returns `IAsyncEnumerable<StreamEvent>`. `KurrentDBEventStore` streams events as they arrive from the server, holding at most one deserialized event at a time. Relational stores buffer up to `count` events per call before yielding, so memory usage can grow with `count` — keep the count bounded when reading from those stores.
+
+### Reading a whole stream
+
+To read a stream to the end, use the `ReadStreamToEnd` extension method instead of calling `ReadEvents` with `int.MaxValue` as the count. It reads events in pages (500 by default) and yields them as they arrive, so memory use stays bounded by the page size no matter how large the stream is:
+
+```csharp
+await foreach (var evt in eventStore.ReadStreamToEnd(
+    streamName,
+    StreamReadPosition.Start,
+    cancellationToken: cancellationToken
+)) {
+    // Process one event at a time with bounded memory use
+}
+```
+
+Use the `pageSize` parameter to tune the page size, and `failIfNotFound: false` to get an empty sequence instead of a `StreamNotFound` exception when the stream doesn't exist.
+
+If you need the whole stream as an array, the `ReadStream` extension method pages through the stream the same way and collects all events:
 
 ```csharp
 var allEvents = await eventStore.ReadStream(

@@ -52,7 +52,21 @@ await foreach (var evt in eventReader.ReadEvents(stream, start, count, ct)) {
 }
 ```
 
+`KurrentDBEventStore` yields each event as it arrives from the server, holding at most one deserialized event at a time regardless of the requested count. Relational stores buffer up to `count` events per call, so memory usage can grow with `count` — keep the count bounded when reading from those stores.
+
 The previous signatures (with `failIfNotFound`, returning `Task<StreamEvent[]>`) are preserved as extension methods in `StoreFunctions`, so **all existing callers compile and work unchanged**.
+
+### Read a whole stream with ReadStreamToEnd
+
+To read a stream to the end, use the new `ReadStreamToEnd` extension method instead of calling `ReadEvents` with `int.MaxValue` as the count. It reads events in pages (500 by default) and yields them as they arrive, so memory use stays bounded by the page size no matter how large the stream is:
+
+```csharp
+await foreach (var evt in eventReader.ReadStreamToEnd(stream, StreamReadPosition.Start, cancellationToken: ct)) {
+    // Process one event at a time with bounded memory use
+}
+```
+
+Use `pageSize` to tune the page size, and `failIfNotFound: false` to get an empty sequence instead of a `StreamNotFound` exception when the stream doesn't exist. The `ReadStream` extension method pages through the stream the same way and collects the result into an array.
 
 ### SignalR subscription gateway
 
