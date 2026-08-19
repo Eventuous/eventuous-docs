@@ -151,3 +151,9 @@ On the illustration above, the commit queue has a gap, and event **95** is still
 :::
 
 As we talk about gaps, you might face a situation when the commit handler has a list of uncommitted checkpoints with gaps, and the application stops. When this happens, some events were already processed, whilst checkpoints for those events remain in-flight. When the application restarts, it loads the checkpoint that points to some position in the stream that is _earlier_ than positions of already processed events. Because of that, some events will be processed by event handlers _again_. Therefore, you need to make sure that your event handlers are _idempotent_, so when the same events are processed again, the result of the processing won't create any undesired side effects.
+
+## Checkpoint progress without events
+
+A subscription's checkpoint normally advances when handlers acknowledge processed events. Subscriptions to the global stream with a server-side filter also advance it without delivering anything: the server periodically reports how far it has scanned past filtered-out events, and the subscription commits the reported position through the same commit handler, so the ordering and gap-detection guarantees described above are unaffected. The subscription also commits the position of the global stream's head it observed before subscribing once it catches up (reaches the live edge) — on start, and after every fall-behind recovery.
+
+This gives filtered global stream subscriptions a useful invariant: once caught up, the stored checkpoint is always at or past the head the subscription caught up to. Catch-up progress reporting and readiness gates that compare the stored checkpoint against the head of the store can rely on it — the lag of a caught-up subscription converges to zero even when its filter matches nothing (for example, a fresh store with a category filter for streams that don't exist yet), and restarts don't re-scan long unmatched stretches.
