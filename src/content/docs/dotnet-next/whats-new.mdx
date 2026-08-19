@@ -52,7 +52,12 @@ await foreach (var evt in eventReader.ReadEvents(stream, start, count, ct)) {
 }
 ```
 
-`KurrentDBEventStore` yields each event as it arrives from the server, holding at most one deserialized event at a time regardless of the requested count. Relational stores buffer up to `count` events per call, so memory usage can grow with `count` — keep the count bounded when reading from those stores.
+`KurrentDBEventStore` yields each event as it arrives from the server, holding at most one deserialized event at a time regardless of the requested count. Relational stores buffer events in an amount proportional to `count` per call, so memory usage can grow with `count` — keep the count bounded when reading from those stores.
+
+The read contract is now explicit and enforced across all stores:
+
+- A read yields exactly `count` events unless the end of the stream is reached, so a short read reliably means the stream end. `KurrentDBEventStore` skips non-deserializable `$`-prefixed system events and issues follow-up reads to still deliver the requested count.
+- Reading past the end of an existing stream returns an empty sequence; only a missing stream throws `StreamNotFound`. This also holds for `TieredEventReader`, which previously threw on past-end reads, and now caps its output at the requested count when combining hot and archive tiers.
 
 The previous signatures (with `failIfNotFound`, returning `Task<StreamEvent[]>`) are preserved as extension methods in `StoreFunctions`, so **all existing callers compile and work unchanged**.
 
@@ -66,7 +71,11 @@ await foreach (var evt in eventReader.ReadStreamToEnd(stream, StreamReadPosition
 }
 ```
 
-Use `pageSize` to tune the page size, and `failIfNotFound: false` to get an empty sequence instead of a `StreamNotFound` exception when the stream doesn't exist. The `ReadStream` extension method pages through the stream the same way and collects the result into an array.
+Use `pageSize` to tune the page size (it must be positive, otherwise the call throws `ArgumentOutOfRangeException`), and `failIfNotFound: false` to get an empty sequence instead of a `StreamNotFound` exception when the stream doesn't exist. The `ReadStream` extension method pages through the stream the same way and collects the result into an array.
+
+### Redis store position semantics
+
+The Redis store now reads with positions inclusive of the start position, matching every other store, and assigns explicit stream entry IDs on append so that positions always round-trip — previously, paged reads could silently skip events at page boundaries for same-millisecond append bursts. Streams containing entries written by earlier versions with auto-generated IDs the position encoding can't represent (sequence numbers above 9) are rejected for reads from a non-zero position with `NotSupportedException`; read such streams from the start, which identifies the offending entry, and migrate them.
 
 ### SignalR subscription gateway
 

@@ -125,7 +125,12 @@ foreach (var evt in events) {
 }
 ```
 
-The `IEventReader.ReadEvents` interface method returns `IAsyncEnumerable<StreamEvent>`. `KurrentDBEventStore` streams events as they arrive from the server, holding at most one deserialized event at a time. Relational stores buffer up to `count` events per call before yielding, so memory usage can grow with `count` — keep the count bounded when reading from those stores.
+The `IEventReader.ReadEvents` interface method returns `IAsyncEnumerable<StreamEvent>`. `KurrentDBEventStore` streams events as they arrive from the server, holding at most one deserialized event at a time. Relational stores buffer events in an amount proportional to `count` per call before yielding, so memory usage can grow with `count` — keep the count bounded when reading from those stores.
+
+The reader contract holds for all stores:
+
+- A read yields exactly `count` events unless the end of the stream is reached, so a short read means there is nothing left to read.
+- Reading past the end of an existing stream returns an empty sequence; only a missing stream throws `StreamNotFound`.
 
 ### Reading a whole stream
 
@@ -141,7 +146,7 @@ await foreach (var evt in eventStore.ReadStreamToEnd(
 }
 ```
 
-Use the `pageSize` parameter to tune the page size, and `failIfNotFound: false` to get an empty sequence instead of a `StreamNotFound` exception when the stream doesn't exist.
+Use the `pageSize` parameter to tune the page size (it must be positive), and `failIfNotFound: false` to get an empty sequence instead of a `StreamNotFound` exception when the stream doesn't exist.
 
 If you need the whole stream as an array, the `ReadStream` extension method pages through the stream the same way and collects all events:
 
