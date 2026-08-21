@@ -6,7 +6,37 @@ sidebar:
 
 This page tracks changes for the next release of Eventuous.
 
+## Breaking changes
+
+### One handler type per subscription
+
+Adding the same handler type twice to a single subscription now throws `ArgumentException` when the subscription is registered:
+
+```csharp
+services.AddSubscription<StreamSubscription, StreamSubscriptionOptions>(
+    "payments",
+    builder => builder
+        .AddEventHandler<PaymentsProjection>()
+        .AddEventHandler<PaymentsProjection>()  // throws
+);
+```
+
+Both registrations claimed the same container slot, keyed by handler type and subscription id, so the subscription dispatched every event to the same instance twice — silently. The same applies to `AddCompositionEventHandler<THandler, TWrappingHandler>(getWrappingHandler)`, which resolves its inner handler from that slot.
+
+When a subscription genuinely needs two handlers of the same type, register them with the factory or the instance overload, which keep one handler per registration.
+
 ## New features
+
+### Event handlers created by a factory are disposed
+
+A handler created by `AddEventHandler(sp => ...)`, or an inner handler created by `AddCompositionEventHandler(getInnerHandler, ...)`, is now owned by the subscription. If it implements `IDisposable` or `IAsyncDisposable`, it gets disposed when the subscription is disposed, after the consume pipe filters have drained the messages in flight, with `IAsyncDisposable` preferred when both are implemented:
+
+```csharp
+builder.AddEventHandler(sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()));
+```
+
+Handlers registered by type are created and disposed by the container as before, and handlers passed as an instance stay the caller's to dispose. A wrapping handler produced by `AddCompositionEventHandler` decorates the inner one and isn't disposed.
+
 
 ### Multi-stream append
 
@@ -108,4 +138,27 @@ await client.SubscribeTyped("Order-123", fromPosition: 0)
 ```
 
 See the [SignalR documentation](../infra/signalr) for full details including auto-reconnect behavior and custom hubs.
+
+## Bug fixes
+
+### Handlers registered with a factory no longer collapse into one
+
+`AddEventHandler(Func<IServiceProvider, THandler>)` registered the handler in the container keyed by the subscription id, then resolved it back by `THandler`. When several handlers were added to one subscription through this overload and `THandler` inferred to the same type for each call — which happens naturally when the factories are held in a collection typed `Func<IServiceProvider, IEventHandler>` — every registration after the first silently did nothing, and the subscription ran several copies of the first handler and none of the others:
+
+```csharp
+IReadOnlyList<Func<IServiceProvider, IEventHandler>> projectors = [
+    _ => new FactProjector(),
+    _ => new VectorProjector(),
+    _ => new ClusterProjector()
+];
+
+// Before: three copies of FactProjector. Now: one of each.
+foreach (var projector in projectors) builder.AddEventHandler(projector);
+```
+
+Nothing failed and nothing was logged, so with idempotent projectors the duplicate dispatch was invisible and the missing handlers only showed up as missing data.
+
+Factory-created handlers are now kept by the subscription rather than the container, so each registration keeps its own handler. The same fix applies to the `AddCompositionEventHandler` overloads that build the inner handler from a factory.
+
+As a consequence, a handler registered with a factory is no longer resolvable from the container with `GetRequiredKeyedService<THandler>(subscriptionId)`. Handlers registered by type still are.
 
