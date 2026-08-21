@@ -27,15 +27,30 @@ When a subscription genuinely needs two handlers of the same type, register them
 
 ## New features
 
-### Event handlers created by a factory are disposed
+### Subscriptions can own and dispose handlers built by a factory
 
-A handler created by `AddEventHandler(sp => ...)`, or an inner handler created by `AddCompositionEventHandler(getInnerHandler, ...)`, is now owned by the subscription. If it implements `IDisposable` or `IAsyncDisposable`, it gets disposed when the subscription is disposed, after the consume pipe filters have drained the messages in flight, with `IAsyncDisposable` preferred when both are implemented:
+A handler registered with a factory isn't in the container, so nothing disposes it. New overloads let the subscription take that on:
 
 ```csharp
-builder.AddEventHandler(sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()));
+builder.AddEventHandler(sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()), ownsHandler: true);
+
+builder.AddCompositionEventHandler<ProjectionHandler, PollyEventHandler>(
+    sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()),
+    handler => new PollyEventHandler(handler, retryPolicy),
+    ownsInnerHandler: true
+);
 ```
 
-Handlers registered by type are created and disposed by the container as before, and handlers passed as an instance stay the caller's to dispose. A wrapping handler produced by `AddCompositionEventHandler` decorates the inner one and isn't disposed.
+An owned handler implementing `IDisposable` or `IAsyncDisposable` is disposed when the subscription is disposed, after the consume pipe filters have drained the messages in flight, with `IAsyncDisposable` preferred when both are implemented.
+
+Ownership is opt-in because a factory is free to return a handler it didn't create:
+
+```csharp
+// Owned by the container and possibly shared, so don't claim it
+builder.AddEventHandler(sp => sp.GetRequiredService<SharedHandler>());
+```
+
+Handlers registered by type are created and disposed by the container as before, and handlers passed as an instance stay the caller's to dispose. A wrapping handler produced by `AddCompositionEventHandler` decorates the inner one and is never disposed.
 
 
 ### Multi-stream append
