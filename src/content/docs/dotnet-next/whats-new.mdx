@@ -46,8 +46,9 @@ An owned handler implementing `IDisposable` or `IAsyncDisposable` is disposed wh
 Ownership is opt-in because a factory is free to return a handler it didn't create:
 
 ```csharp
-// Owned by the container and possibly shared, so don't claim it
-builder.AddEventHandler(sp => sp.GetRequiredService<SharedHandler>());
+// Owned by the container and possibly shared, so don't claim it. False is the default,
+// so the original overload without the argument behaves the same way.
+builder.AddEventHandler(sp => sp.GetRequiredService<SharedHandler>(), ownsHandler: false);
 ```
 
 Handlers registered by type are created and disposed by the container as before, and handlers passed as an instance stay the caller's to dispose. A wrapping handler produced by `AddCompositionEventHandler` decorates the inner one and is never disposed.
