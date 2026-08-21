@@ -27,29 +27,30 @@ When a subscription genuinely needs two handlers of the same type, register them
 
 ## New features
 
-### Subscriptions can own and dispose handlers built by a factory
+### Subscriptions dispose the handlers their factories build
 
-A handler registered with a factory isn't in the container, so nothing disposes it. New overloads let the subscription take that on:
+A handler registered with a factory is no longer in the container, so the subscription owns it and disposes it:
 
 ```csharp
-builder.AddEventHandler(sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()), ownsHandler: true);
+builder.AddEventHandler(sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()));
+```
 
-builder.AddCompositionEventHandler<ProjectionHandler, PollyEventHandler>(
-    sp => new ProjectionHandler(sp.GetRequiredService<NpgsqlDataSource>()),
+If the handler implements `IDisposable` or `IAsyncDisposable`, it is disposed when the subscription is disposed, after the consume pipe filters have drained the messages in flight, with `IAsyncDisposable` preferred when both are implemented. The same applies to an inner handler built by `AddCompositionEventHandler(getInnerHandler, ...)`.
+
+A factory is free to return a handler it didn't create, and disposing that would break the other components using it. New overloads decline ownership for that case:
+
+```csharp
+// Owned by the container and possibly shared elsewhere
+builder.AddEventHandler(sp => sp.GetRequiredService<SharedHandler>(), ownsHandler: false);
+
+builder.AddCompositionEventHandler<SharedHandler, PollyEventHandler>(
+    sp => sp.GetRequiredService<SharedHandler>(),
     handler => new PollyEventHandler(handler, retryPolicy),
-    ownsInnerHandler: true
+    ownsInnerHandler: false
 );
 ```
 
-An owned handler implementing `IDisposable` or `IAsyncDisposable` is disposed when the subscription is disposed, after the consume pipe filters have drained the messages in flight, with `IAsyncDisposable` preferred when both are implemented.
-
-Ownership is opt-in because a factory is free to return a handler it didn't create:
-
-```csharp
-// Owned by the container and possibly shared, so don't claim it. False is the default,
-// so the original overload without the argument behaves the same way.
-builder.AddEventHandler(sp => sp.GetRequiredService<SharedHandler>(), ownsHandler: false);
-```
+To have the container create and own the handler instead, use the `AddEventHandler<THandler>()` overload, which registers it keyed by subscription id as before.
 
 Handlers registered by type are created and disposed by the container as before, and handlers passed as an instance stay the caller's to dispose. A wrapping handler produced by `AddCompositionEventHandler` decorates the inner one and is never disposed.
 
