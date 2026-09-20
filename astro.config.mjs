@@ -38,8 +38,9 @@ export default defineConfig({
               { label: 'FAQ', autogenerate: { directory: 'dotnet/faq' } },
             ],
             versions: {
-              current: { label: 'v0.16 (Stable)' },
+              current: { label: 'v0.17 (Stable)' },
               versions: [
+                { slug: 'dotnet-0.16', label: 'v0.16' },
                 { slug: 'dotnet-0.15', label: 'v0.15' },
                 { slug: 'dotnet-next', label: 'Preview' },
               ],

@@ -9,5 +9,6 @@ Eventuous supports the following projection targets:
 - [PostgreSQL projections](../../infra/postgres#projections)
 - [Microsoft SQL Server projections](../../infra/mssql#projections)
 - [SQLite projections](../../infra/sqlite#projections)
+- [Azure Blob Storage projections](../../infra/azure-blob-storage)
 
 You can project to any other database using a custom projector, which can be built as a [custom event handler](../../subscriptions/eventhandler#custom-handlers).
