@@ -108,9 +108,27 @@ Eventuous uses the consume pipe, where it's possible to add filters (similar to 
 
 A subscription could drop for different reasons. For example, it fails to pass the keep alive ping to the server due to a transient network failure, or it gets overloaded.
 
-The subscription service handles such drops and issues a resubscribe request, unless the application is shutting down, so the drop is deliberate.
+Each subscription has a supervisor that replaces a dropped connection unless the subscription is stopping. It finishes teardown of the previous run before connecting again, including the final checkpoint flush for subscriptions with checkpoints.
 
-This feature makes the subscription service resilient to transient failures, so it will recover from drops and continue processing events, when possible.
+Two options control recovery:
 
-You can configure the subscription to ignore failures and continue by setting `ThrowIfError` property of `SubscriptionOptions` to `false`.
+| Option | Default | Purpose |
+|---|---|---|
+| `RetryDelay` | Two seconds | Delay before attempting to replace a dropped connection |
+| `TeardownTimeout` | Five seconds | Time allowed for graceful cleanup before releases are asked to finish promptly |
 
+`TeardownTimeout` is not a hard deadline. Every registered release is awaited before the next run starts. Cancelling the token passed to `Unsubscribe` bounds the caller's wait; it does not abandon cleanup.
+
+`ThrowOnError` controls how handler failures are treated. It defaults to `false`; with checkpoint-based subscriptions, a failed message can then be acknowledged and processing continues. Set it to `true` to fail the run and recover from the last committed checkpoint. Broker-specific acknowledgement and redelivery rules still apply.
+
+### Implementing a custom subscription
+
+In 0.17, override `Connect(SubscriptionRun run)` to acquire the transport connection and start message delivery. The supervisor owns reconnection. Use the run throughout that connection attempt:
+
+- Pass `run.Token` to transport I/O and message contexts.
+- Register cleanup with `run.OnDisconnect(...)` as each resource is acquired. Releases run in reverse order, including when connection setup fails partway through.
+- Call `run.Fail(DropReason.ServerError, exception)` for transport failures, or `run.Fail(DropReason.SubscriptionError, exception)` for processing failures. Transport message loops must report their own failure.
+- Capture the run in callbacks and use `run.NextSequence()` for message sequence numbers. Late callbacks must continue to refer to their original run.
+- For `EventSubscriptionWithCheckpoint<TOptions>`, use `GetCheckpoint(run)` and `HandleInternal(run, context)`.
+
+The protected `Subscribe` and `Unsubscribe` overrides, `Finalize`, `Dropped`, `Resubscribe`, `Stopping`, `Sequence`, and `IsDropped` extension points have been replaced. `DropReason.Stopped` is removed; normal shutdown uses cancellation. See the [0.17 migration table](/dotnet/whats-new/#custom-subscriptions-use-a-run-based-lifecycle) when updating a provider.

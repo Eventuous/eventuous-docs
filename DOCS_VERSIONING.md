@@ -1,6 +1,6 @@
 # Docs Versioning & Authoring Guide
 
-This file is for Claude Code. It documents how the Eventuous docs site versioning works so docs can be updated correctly.
+Use this guide when adding a docs version or promoting Preview to a stable release.
 
 ## Site Structure
 
@@ -9,7 +9,7 @@ The docs site supports two languages: .NET and Go, each with independent content
 ```
 src/content/docs/
 ├── index.mdx                    ← landing page (links to both .NET and Go)
-├── dotnet/                      ← .NET current stable docs (v0.16)
+├── dotnet/                      ← .NET current stable docs (v0.17)
 │   ├── intro.mdx
 │   ├── whats-new.mdx
 │   ├── domain/
@@ -23,6 +23,8 @@ src/content/docs/
 │   ├── infra/
 │   ├── faq/
 │   └── prologue/
+├── dotnet-0.16/                 ← .NET archived v0.16
+│   └── ... (same structure as dotnet/)
 ├── dotnet-0.15/                 ← .NET archived v0.15
 │   └── ... (same structure as dotnet/)
 ├── dotnet-next/                 ← .NET preview
@@ -39,27 +41,27 @@ src/content/docs/
 
 ## Version Structure
 
-Managed by the `starlight-versions` plugin in `astro.config.mjs`.
+Managed by the local `starlight-topic-versions` plugin in `astro.config.mjs`.
 
 - **`dotnet/`** is the current stable .NET version (shown by default).
-- **`dotnet-0.15/`** is the archived v0.15 snapshot. Don't edit unless fixing a bug in old docs.
-- **`dotnet-next/`** is a preview placeholder for the next .NET version.
+- **`dotnet-0.16/`** and **`dotnet-0.15/`** are archived snapshots. Edit only to fix old docs.
+- **`dotnet-next/`** starts from the current stable docs and tracks the next .NET release.
 - **`go/`** is the current Go version. No archived Go versions yet.
 
-Version configs live in `src/content/versions/`:
-- `dotnet-0.15.json` — sidebar config for archived v0.15
-- `dotnet-next.json` — sidebar config for preview
+Version sidebar configs live in `src/content/versions/`, with one JSON file per archived or preview version.
 
 ## Config in astro.config.mjs
 
 ```js
-starlightVersions({
-  current: { label: 'v0.16 (Stable)' },
+// The .NET topic's versions property in starlightTopicVersions(...)
+versions: {
+  current: { label: 'v0.17 (Stable)' },
   versions: [
+    { slug: 'dotnet-0.16', label: 'v0.16' },
     { slug: 'dotnet-0.15', label: 'v0.15' },
     { slug: 'dotnet-next', label: 'Preview' },
   ],
-}),
+},
 ```
 
 Each entry in `versions` must have a matching directory under `src/content/docs/{slug}/` and a sidebar config at `src/content/versions/{slug}.json`.
@@ -77,6 +79,8 @@ Component imports use the `@components/` alias (defined in `tsconfig.json`), so 
 | File location | Image path to `src/assets/logo.png` |
 |---|---|
 | Root `index.mdx` | `../../assets/logo.png` |
+| `dotnet/index.mdx` | `../../../assets/logo.png` |
+| `dotnet-0.16/index.mdx` | `../../../assets/logo.png` |
 | `dotnet-0.15/index.mdx` | `../../../assets/logo.png` |
 | `dotnet-next/index.mdx` | `../../../assets/logo.png` |
 
@@ -89,16 +93,17 @@ Internal doc links resolve relative to the file's URL path:
 
 ## How to Release a New .NET Version
 
-To promote `dotnet-next/` to a new stable version (e.g. v0.17):
+To promote `dotnet-next/` to a new stable version:
 
-1. **Archive current `dotnet/`** — copy `dotnet/` content into a new directory (e.g. `dotnet-0.16/`). Create a matching `src/content/versions/dotnet-0.16.json` sidebar config.
+1. **Archive current `dotnet/`** — copy its complete tree, including images, into `dotnet-{old-version}/`. Create a matching sidebar config from the current sidebar structure, using slugs and directory names relative to the snapshot root.
 2. **Replace `dotnet/` with `dotnet-next/`** — delete `dotnet/` content files, copy `dotnet-next/` to `dotnet/`.
-3. **Fix relative paths** — adjust hero image paths if needed (versioned dirs are one level deeper than `dotnet/`).
+3. **Check version-local links** — all .NET version directories have the same depth, so relative asset paths stay unchanged. Update absolute hero and docs links to stay within each version.
 4. **Update `astro.config.mjs`** — change `current.label`, add archived version to `versions` array.
-5. **Reset `dotnet-next/`** — delete all content, create a single `whats-new.mdx` placeholder. Update `dotnet-next.json` sidebar.
-6. **Build and verify** — `pnpm build` must pass.
+5. **Write release notes** — replace the promoted `whats-new.mdx` with notes scoped to the previous stable tag. Lead with breaking changes, their affected users, and concrete migration steps. Verify API names and defaults against the library source; Preview notes may include features already released in a patch.
+6. **Reset Preview** — copy the completed stable docs back to `dotnet-next/`, then replace its `whats-new.mdx` with a placeholder for the following release. Keep the full content and sidebar: the version selector swaps the URL prefix, so a notes-only Preview would send readers of other pages to missing routes.
+7. **Build and verify** — `pnpm build` must pass. Check current, archived, and Preview labels, version-local links, and the rendered release notes. Confirm the old stable content is preserved in the archive apart from version-local link corrections.
 
-> **Do not** rely on the plugin's auto-snapshot feature (`ensureNewVersion`). It fails on MDX files with complex Astro expressions. Always snapshot manually.
+> Snapshot manually. The local plugin reads version directories and sidebar configs; it does not create snapshots.
 
 ## Adding New Doc Pages
 

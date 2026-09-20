@@ -1,8 +1,6 @@
 ---
 title: "Serialization"
 description: "How events are serialized and deserialized"
-sidebar:
-  order: 40
 ---
 
 As described on the [Domain events](../../domain/domain-events) page, events must be (de)serializable. Eventuous doesn't care about the serialization format, but requires you to provide a serializer instance, which implements the `IEventSerializer` interface.
@@ -94,28 +92,53 @@ With the source generator in place, calling `RegisterKnownEventTypes()` is typic
 
 ### Default serializer
 
-Eventuous provides a default serializer implementation, which uses `System.Text.Json`. You just need to register it in the `Startup` to make it available for the infrastructure components, like [aggregate store](../aggregate-store) and [subscriptions](../../subscriptions/subs-concept).
+Eventuous provides two serializers based on `System.Text.Json`. Configure one before constructing event stores, producers, or subscriptions that use it. In 0.17, there is no automatically created event serializer: accessing `EventSerializer.Default` before configuration throws `InvalidOperationException`.
 
-Normally, you don't need to register or provide the serializer instance to any of the Eventuous classes that perform serialization and deserialization work. It's because they will use the default serializer instance instead.
+#### Source-generated JSON
 
-However, you can register the default serializer with different options, or a custom serializer instead:
+For trimmed or Native AOT applications, use `DefaultStaticEventSerializer` from `Eventuous.Serialization`. Define a `JsonSerializerContext` containing every event type that your application serializes:
 
-```csharp title="Program.cs"
-builder.Services.AddSingleton<IEventSerializer>(
-    new DefaultEventSerializer(
-        new JsonSerializerOptions(JsonSerializerDefaults.Default)
-    )
-);
+```csharp title="EventJsonContext.cs"
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+[JsonSerializable(typeof(RoomBooked))]
+[JsonSerializable(typeof(BookingPaid))]
+public partial class EventJsonContext : JsonSerializerContext { }
 ```
 
-You might want to avoid registering the serializer and override the one that Eventuous uses as the default instance:
+```csharp title="Program.cs"
+var serializer = new DefaultStaticEventSerializer(EventJsonContext.Default);
+EventSerializer.SetDefault(serializer);
+builder.Services.AddSingleton<IEventSerializer>(serializer);
+```
+
+JSON source generation supplies serialization metadata; event names still need registration in `TypeMap`, either through the Eventuous source generator or explicitly.
+
+#### Reflection-based JSON
+
+For reflection-based serialization, add a reference to **`Eventuous.Serialization.Json.Dynamic`**. The `DefaultEventSerializer` class remains in the `Eventuous` namespace:
+
+```shell
+dotnet add package Eventuous.Serialization.Json.Dynamic
+```
 
 ```csharp title="Program.cs"
-var defaultSerializer = new DefaultEventSerializer(
-    new JsonSerializerOptions(JsonSerializerDefaults.Default)
+var serializer = new DefaultEventSerializer(
+    new JsonSerializerOptions(JsonSerializerDefaults.Web)
 );
-DefaultEventSerializer.SetDefaultSerializer(serializer);
+EventSerializer.SetDefault(serializer);
+builder.Services.AddSingleton<IEventSerializer>(serializer);
 ```
+
+Preserve any JSON options and converters your stored events require. Constructing `DefaultEventSerializer` sets the global default only if one has not already been configured; an explicit `EventSerializer.SetDefault` makes startup configuration clear and can replace a previous default. Its constructor reports trimming and AOT warnings because this implementation uses reflection.
+
+#### Custom serializers and dependency injection
+
+Register a custom `IEventSerializer` with DI to supply it to components resolved through the container. Use `EventSerializer.SetDefault(serializer)` as well when code constructs components directly and relies on their optional serializer argument. DI registration alone does not configure the global default for an arbitrary custom serializer.
+
+Code that previously used `DefaultEventSerializer.Instance` or `DefaultEventSerializer.SetDefaultSerializer(...)` must use `EventSerializer.Default` or `EventSerializer.SetDefault(...)`. See the [0.17 migration guide](/dotnet/whats-new/#event-serialization-must-be-configured-explicitly).
 
 ### Metadata serializer
 

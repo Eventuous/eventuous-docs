@@ -2,7 +2,7 @@
 title: "Implementation"
 description: "How producers are implemented"
 sidebar:
-  order: 10
+  order: 1
 ---
 
 ## Abstraction

@@ -105,6 +105,24 @@ Catch-up subscriptions need a [checkpoint](../../subscriptions/checkpoint). You 
 
 Remember to store the checkpoint in the same database as the read model. For example, if you use Postgres as an event store, and project events to read models in MongoDB, you need to use the `MongoCheckpointStore`. Eventuous also has a checkpoint store implementation for Postgres (`PostgresCheckpointStore`), which you can use if you project events to Postgres.
 
+### Gap handling
+
+Concurrent transactions can leave gaps in the global event log until a transaction commits. `PostgresAllStreamSubscription` waits at these gaps so events that commit later are not silently skipped. The gap policy has three options:
+
+| Option | Default | Behavior |
+|---|---|---|
+| `GapSkipTimeoutMs` | `null` | Optional elapsed-time limit after which the missing position is abandoned |
+| `GapHandlingTimeoutMs` | `null` | Optional delay before PostgreSQL attempts to resolve the gap with a tombstone |
+| `GapAgeThresholdMs` | `3600000` (one hour) | Ignore a gap when the event following it is older than this threshold |
+
+In 0.17, `GapSkipTimeoutMs` changes from `5000` to `null`. A gap can therefore hold processing longer than five seconds with the default configuration. Age-based release is evaluated while polling, so an unresolved gap can eventually be released without restarting the subscription.
+
+Prefer `GapHandlingTimeoutMs` when you need active remediation: PostgreSQL coordinates tombstone creation with in-flight appends. Remediation is attempted before timeout-based skipping. Set `GapSkipTimeoutMs` explicitly only when advancing past a gap is more important than processing every event; a transaction that commits after the timeout can otherwise have its event skipped.
+
+### Updating the database functions
+
+Version 0.17 changes the `append_events` and `check_stream` functions to prevent concurrent appends from silently losing events. Deploy the updated functions alongside the application. With Eventuous-managed initialization, `AddEventuousPostgres(..., initializeDatabase: true)` runs the schema initializer. If database objects are managed separately, apply the matching 0.17 SQL scripts through that process; installing the NuGet package alone does not update the database functions.
+
 ### Projections
 
 You can use Postgres both as an event store and as a read model store. In that case, you can use the same connection factory for both the event store, the checkpoint store, and the projector.
@@ -157,4 +175,4 @@ builder.Services.AddSubscription<PostgresAllStreamSubscription, PostgresAllStrea
 );
 ```
 
-Note that the `insert` operation in the projection is not idempotent, so if the event is processed twice because there was a failure, the projector will throw an exception. It would not be an issue when the subscription uses the default setting that tells it not to stop when the handler fails. If you want to ensure that failures force the subscription to throw, you can change the subscription option `ThroOnError` to `true`, and make the operation idempotent by using "insert or update".
+Note that the `insert` operation in the projection is not idempotent, so if the event is processed twice because there was a failure, the projector will throw an exception. It would not be an issue when the subscription uses the default setting that tells it not to stop when the handler fails. If you want to ensure that failures force the subscription to throw, you can change the subscription option `ThrowOnError` to `true`, and make the operation idempotent by using "insert or update".
