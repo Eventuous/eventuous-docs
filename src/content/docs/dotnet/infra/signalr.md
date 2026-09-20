@@ -12,7 +12,7 @@ The SignalR subscription gateway bridges Eventuous stream subscriptions to Signa
 - **`Eventuous.SignalR.Server`** — server-side gateway that manages per-connection Eventuous subscriptions and forwards events over SignalR
 - **`Eventuous.SignalR.Client`** — client-side subscription API with auto-reconnect and typed event handling
 
-The server reuses the existing [Gateway](../../../gateway) pattern (`GatewayHandler` + `BaseProducer`) internally, so event forwarding benefits from the same tracing and metadata pipeline as other Eventuous producers.
+The server reuses the existing [Gateway](../../gateway) pattern (`GatewayHandler` + `BaseProducer`) internally, so event forwarding benefits from the same tracing and metadata pipeline as other Eventuous producers.
 
 ## Server
 

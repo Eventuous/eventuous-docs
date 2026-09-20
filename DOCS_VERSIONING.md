@@ -100,8 +100,8 @@ To promote `dotnet-next/` to a new stable version:
 3. **Check version-local links** — all .NET version directories have the same depth, so relative asset paths stay unchanged. Update absolute hero and docs links to stay within each version.
 4. **Update `astro.config.mjs`** — change `current.label`, add archived version to `versions` array.
 5. **Write release notes** — replace the promoted `whats-new.mdx` with notes scoped to the previous stable tag. Lead with breaking changes, their affected users, and concrete migration steps. Verify API names and defaults against the library source; Preview notes may include features already released in a patch.
-6. **Reset Preview** — copy the completed stable docs back to `dotnet-next/`, then replace its `whats-new.mdx` with a placeholder for the following release. Keep the full content and sidebar: the version selector swaps the URL prefix, so a notes-only Preview would send readers of other pages to missing routes.
-7. **Build and verify** — `pnpm build` must pass. Check current, archived, and Preview labels, version-local links, and the rendered release notes. Confirm the old stable content is preserved in the archive apart from version-local link corrections.
+6. **Reset Preview** — copy the completed stable docs back to `dotnet-next/`, then replace its `whats-new.mdx` with a placeholder for the following release. Keep the full content and sidebar so readers can compare individual pages with stable. The version selector preserves the current page when it exists in the selected version, otherwise it falls back to that version's introduction.
+7. **Build and verify** — `pnpm test` builds the site and checks version navigation and version-local links. Check the rendered release notes and confirm the old stable content is preserved in the archive apart from version-local link corrections.
 
 > Snapshot manually. The local plugin reads version directories and sidebar configs; it does not create snapshots.
 
