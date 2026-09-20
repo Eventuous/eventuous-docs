@@ -1,4 +1,6 @@
 ---
+import { getCollection } from 'astro:content';
+
 const routeData = (Astro.locals as any).starlightTopicVersions as {
   currentTopic: { id: string; label: string; link: string } | null;
   currentVersion: { slug: string; label: string; isCurrent: boolean } | null;
@@ -15,7 +17,7 @@ const topicId = topic?.id;
 // we can't easily import virtual modules. Instead, we'll embed the needed data.
 // The middleware already figured out the current version; we need the full list.
 // We'll import the virtual config here.
-let versions: Array<{ slug: string; label: string; isCurrent: boolean }> = [];
+let versions: Array<{ slug: string; label: string; isCurrent: boolean; href: string }> = [];
 let showSelect = false;
 
 if (topic && version) {
@@ -24,12 +26,23 @@ if (topic && version) {
   const topicConfig = (allConfig.default as any[]).find((t: any) => t.id === topicId);
 
   if (topicConfig?.versions && topicConfig.versions.versions.length > 0) {
+    const docIds = new Set((await getCollection('docs')).map((entry) => entry.id));
+    const pagePath = Astro.locals.starlightRoute.id.split('/').filter(Boolean).slice(1).join('/');
+
+    function versionHref(slug: string): string {
+      const candidate = [slug, pagePath].filter(Boolean).join('/');
+      return docIds.has(candidate)
+        ? `/${candidate}/`
+        : topicConfig.link.replace(/^\/[^\/]+/, `/${slug}`);
+    }
+
     showSelect = true;
     // Current version option
     versions.push({
       slug: topicConfig.id,
       label: topicConfig.versions.current.label,
       isCurrent: version.isCurrent,
+      href: versionHref(topicConfig.id),
     });
     // Archived versions
     for (const v of topicConfig.versions.versions) {
@@ -37,6 +50,7 @@ if (topic && version) {
         slug: v.slug,
         label: v.label ?? v.slug,
         isCurrent: !version.isCurrent && version.slug === v.slug,
+        href: versionHref(v.slug),
       });
     }
   }
@@ -52,7 +66,7 @@ if (topic && version) {
       <span class="sr-only">Version</span>
       <select>
         {versions.map((v) => (
-          <option value={v.slug} selected={v.isCurrent}>
+          <option value={v.slug} data-href={v.href} selected={v.isCurrent}>
             {v.label}
           </option>
         ))}
@@ -84,16 +98,8 @@ if (topic && version) {
 
         if (selectedSlug === currentSlug) return;
 
-        const path = window.location.pathname;
-        const segments = path.split('/').filter(Boolean);
-
-        if (segments.length === 0) return;
-
-        // Replace the first segment (version/topic prefix) with the new one
-        segments[0] = selectedSlug;
-        const newPath = '/' + segments.join('/') + '/';
-
-        window.location.href = newPath;
+        const href = select.selectedOptions[0]?.dataset.href;
+        if (href) window.location.href = href;
       });
     }
   }

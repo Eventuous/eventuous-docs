@@ -146,6 +146,15 @@ If you want to ensure that messages are consumed in relative order, you'd need t
 
 The requeue behaviour is provided by the default failure handler. It's possible to override it by setting the `FailureHandler` property of the subscription options.
 
+In 0.17, Eventuous uses RabbitMQ.Client 7. Custom failure handlers receive `IChannel` and return `ValueTask`:
+
+```csharp
+options.FailureHandler = (channel, message, exception) =>
+    channel.BasicRejectAsync(message.DeliveryTag, requeue: true);
+```
+
+Migrate handlers written for 0.16 from `IModel` and synchronous operations such as `BasicReject` to their asynchronous equivalents. The failure handler is called regardless of `ThrowOnError`; with `ThrowOnError = true`, the subscription fails the current run after invoking the handler and the supervisor replaces the connection.
+
 ## Other messaging frameworks
 
 It's important to understand how Eventuous messaging for RabbitMQ is different compared to other messaging middleware libraries for .NET like MassTransit or NServiceBus.
